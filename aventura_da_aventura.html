@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aventura da Saúde</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #eaf8f1;
+    color: #173b35;
+}
+
+h1 {
+    color: #13795b;
+}
+
+.info {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 15px;
+}
+
+canvas {
+    width: 100%;
+    max-width: 850px;
+    background: #bcebd7;
+    border: 4px solid #13795b;
+    border-radius: 12px;
+}
+
+button {
+    padding: 12px 18px;
+    margin: 5px;
+    border: none;
+    border-radius: 8px;
+    background: #13795b;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0d6047;
+}
+
+#mensagem {
+    font-weight: bold;
+    margin: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌿 Aventura da Saúde</h1>
+<p>Corra, pule e colete itens saudáveis!</p>
+
+<div class="info">
+    💚 Saúde: <span id="saude">3</span>
+    ⭐ Pontos: <span id="pontos">0</span>
+</div>
+
+<canvas id="jogo" width="850" height="390"></canvas>
+
+<p id="mensagem">
+    Use as setas para andar e ESPAÇO para pular!
+</p>
+
+<button id="esquerda">⬅ Esquerda</button>
+<button id="pular">⬆ Pular</button>
+<button id="direita">Direita ➡</button>
+<button id="reiniciar">🔄 Reiniciar</button>
+
+<script>
+const canvas = document.getElementById("jogo");
+const ctx = canvas.getContext("2d");
+
+const chao = 325;
+
+let personagem;
+let obstaculos;
+let itens;
+let teclas;
+let saude;
+let pontos;
+let quadro;
+let fim;
+let invencivel;
+
+function iniciar() {
+    personagem = {
+        x: 60,
+        y: chao - 42,
+        largura: 30,
+        altura: 42,
+        velocidadeY: 0,
+        noChao: true
+    };
+
+    obstaculos = [];
+    itens = [];
+    teclas = {};
+
+    saude = 3;
+    pontos = 0;
+    quadro = 0;
+    fim = false;
+    invencivel = 0;
+
+    document.getElementById("mensagem").textContent =
+        "Vamos começar a aventura!";
+
+    atualizarInfo();
+}
+
+function atualizarInfo() {
+    document.getElementById("saude").textContent = saude;
+    document.getElementById("pontos").textContent = pontos;
+}
+
+function pular() {
+    if (!fim && personagem.noChao) {
+        personagem.velocidadeY = -12;
+        personagem.noChao = false;
+    }
+}
+
+document.addEventListener("keydown", function(e) {
+    teclas[e.key] = true;
+
+    if (e.key === " " || e.key === "ArrowUp") {
+        e.preventDefault();
+        pular();
+    }
+});
+
+document.addEventListener("keyup", function(e) {
+    teclas[e.key] = false;
+});
+
+document.getElementById("esquerda").onpointerdown =
+    () => teclas.ArrowLeft = true;
+
+document.getElementById("direita").onpointerdown =
+    () => teclas.ArrowRight = true;
+
+["esquerda", "direita"].forEach(id => {
+    const botao = document.getElementById(id);
+
+    ["pointerup", "pointerleave", "pointercancel"].forEach(evento => {
+        botao.addEventListener(evento, () => {
+            teclas[id === "esquerda" ? "ArrowLeft" : "ArrowRight"] = false;
+        });
+    });
+});
+
+document.getElementById("pular").onclick = pular;
+document.getElementById("reiniciar").onclick = iniciar;
+
+function colidiu(a, b) {
+    return a.x < b.x + b.largura &&
+           a.x + a.largura > b.x &&
+           a.y < b.y + b.altura &&
+           a.y + a.altura > b.y;
+}
+
+function criarObjetos() {
+    if (quadro % 85 === 0) {
+        obstaculos.push({
+            x: canvas.width,
+            y: chao - 28,
+            largura: 28,
+            altura: 28,
+            emoji: Math.random() < 0.5 ? "🪨" : "💦"
+        });
+    }
+
+    if (quadro % 110 === 0) {
+        itens.push({
+            x: canvas.width,
+            y: chao - 70 - Math.random() * 60,
+            largura: 25,
+            altura: 25,
+            emoji: Math.random() < 0.5 ? "🍎" : "💧"
+        });
+    }
+}
+
+function desenharCenario() {
+    ctx.fillStyle = "#bcebd7";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Morros
+    ctx.fillStyle = "#8dd5a9";
+
+    ctx.beginPath();
+    ctx.arc(140, 310, 90, Math.PI, 0);
+    ctx.arc(380, 310, 120, Math.PI, 0);
+    ctx.arc(700, 310, 100, Math.PI, 0);
+    ctx.fill();
+
+    // Chão
+    ctx.fillStyle = "#48a86c";
+    ctx.fillRect(0, chao, canvas.width, 65);
+
+    ctx.fillStyle = "#277d50";
+    ctx.fillRect(0, chao, canvas.width, 8);
+}
+
+function desenharPersonagem() {
+    ctx.fillStyle = "#f4a261";
+    ctx.fillRect(
+        personagem.x,
+        personagem.y,
+        personagem.largura,
+        personagem.altura
+    );
+
+    // Olhos
+    ctx.fillStyle = "#264653";
+    ctx.fillRect(personagem.x + 5, personagem.y + 8, 5, 5);
+    ctx.fillRect(personagem.x + 20, personagem.y + 8, 5, 5);
+
+    // Roupa
+    ctx.fillStyle = "#13795b";
+    ctx.fillRect(personagem.x + 3, personagem.y + 19, 24, 9);
+
+    // Pernas
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(personagem.x + 4, personagem.y + 30, 9, 12);
+    ctx.fillRect(personagem.x + 18, personagem.y + 30, 9, 12);
+}
+
+function desenharObjetos() {
+    ctx.font = "28px Arial";
+
+    obstaculos.forEach(o => {
+        ctx.fillText(o.emoji, o.x, o.y + 25);
+    });
+
+    itens.forEach(i => {
+        ctx.fillText(i.emoji, i.x, i.y + 23);
+    });
+}
+
+function terminar(vitoria) {
+    fim = true;
+
+    document.getElementById("mensagem").textContent =
+        vitoria
+        ? "🏆 Parabéns! Você venceu a Aventura da Saúde!"
+        : "💚 Fim de jogo! Clique em Reiniciar para tentar novamente.";
+}
+
+function atualizar() {
+    if (fim) return;
+
+    quadro++;
+
+    // Movimento horizontal
+    if (teclas.ArrowLeft) personagem.x -= 4;
+    if (teclas.ArrowRight) personagem.x += 4;
+
+    personagem.x = Math.max(
+        0,
+        Math.min(canvas.width - personagem.largura, personagem.x)
+    );
+
+    // Gravidade e pulo
+    personagem.y += personagem.velocidadeY;
+    personagem.velocidadeY += 0.6;
+
+    if (personagem.y + personagem.altura >= chao) {
+        personagem.y = chao - personagem.altura;
+        personagem.velocidadeY = 0;
+        personagem.noChao = true;
+    }
+
+    if (invencivel > 0) invencivel--;
+
+    criarObjetos();
+
+    const velocidade = 4 + Math.min(3, pontos / 150);
+
+    // Obstáculos
+    obstaculos.forEach(o => {
+        o.x -= velocidade;
+
+        if (colidiu(personagem, o) && invencivel === 0) {
+            saude--;
+            invencivel = 60;
+
+            document.getElementById("mensagem").textContent =
+                "Ops! Pule os obstáculos para proteger sua saúde!";
+
+            atualizarInfo();
+
+            if (saude <= 0) terminar(false);
+        }
+    });
+
+    // Itens saudáveis
+    itens.forEach(i => {
+        i.x -= velocidade;
+
+        if (colidiu(personagem, i)) {
+            i.x = -100;
+            pontos += 10;
+
+            document.getElementById("mensagem").textContent =
+                i.emoji === "💧"
+                ? "Muito bem! A água é importante para o corpo!"
+                : "Boa! Frutas fazem parte de uma alimentação saudável!";
+
+            atualizarInfo();
+
+            if (pontos >= 100) terminar(true);
+        }
+    });
+
+    obstaculos = obstaculos.filter(o => o.x > -50);
+    itens = itens.filter(i => i.x > -50);
+}
+
+function desenhar() {
+    desenharCenario();
+    desenharObjetos();
+    desenharPersonagem();
+
+    ctx.fillStyle = "#173b35";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText("META: 100 PONTOS", 660, 28);
+}
+
+function loop() {
+    atualizar();
+    desenhar();
+    requestAnimationFrame(loop);
+}
+
+iniciar();
+loop();
+</script>
+
+</body>
+</html>
