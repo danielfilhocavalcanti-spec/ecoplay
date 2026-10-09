@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1b5e20">
+  <meta name="description" content="EcoPlay: um jogo educativo sobre meio ambiente, saúde e conhecimentos gerais.">
+  <title>EcoPlay 🌎</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: linear-gradient(135deg, #1b5e20, #81c784);
+      min-height: 100vh; padding: 22px 0; font-family: Arial, sans-serif;
+      display: flex; justify-content: center; align-items: center; color: white;
+    }
+    #app { width: 95%; max-width: 900px; text-align: center; }
+    h1 { font-size: 42px; margin-bottom: 14px; }
+    .install-area { margin: 0 0 18px; }
+    #installAppButton { background: #ffca28; color: #333; }
+    #installAppMessage { margin-top: 8px; font-size: 14px; min-height: 18px; }
+    #menu, .panel {
+      background: rgba(0,0,0,.5); padding: 30px; border-radius: 20px;
+    }
+    #menu p { font-size: 20px; margin: 15px; }
+    button {
+      border: none; border-radius: 12px; padding: 14px 24px; font-size: 18px;
+      cursor: pointer; background: #ffca28; color: #333; font-weight: bold;
+      touch-action: manipulation;
+    }
+    button:hover { background: #ffd95a; }
+    button:focus-visible { outline: 3px solid white; outline-offset: 3px; }
+    #jogoArea { display: none; }
+    #placar {
+      display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+      background: rgba(0,0,0,.5); padding: 12px 20px; border-radius: 12px 12px 0 0;
+      font-size: 20px;
+    }
+    canvas {
+      width: 100%; height: auto; background: #7bd35a; border: 4px solid white;
+      display: block; margin: auto; touch-action: none;
+    }
+    #controles {
+      margin: 15px auto 0; display: grid; grid-template-columns: repeat(3, 64px);
+      justify-content: center; gap: 8px; user-select: none;
+    }
+    #controles button {
+      padding: 8px; width: 64px; height: 56px; background: #fff; font-size: 22px;
+      touch-action: none;
+    }
+    #baixo { grid-column: 2; }
+    #mensagem { margin-top: 15px; font-size: 18px; min-height: 24px; }
+    #perguntaArea { display:none; margin-top: 18px; }
+    #perguntaTexto { font-size: 20px; margin-bottom: 16px; }
+    .opcoes { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
+    .opcoes button { min-width: 100px; }
+    #feedback { min-height:24px; margin:14px 0; font-weight:bold; }
+    .acoes { display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin-top:16px; }
+    @media (max-width: 600px) {
+      h1 { font-size: 32px; }
+      #menu, .panel { padding: 22px 14px; }
+      #menu p { font-size: 18px; }
+      #placar { font-size: 16px; padding: 10px; }
+      button { font-size: 16px; padding: 12px 18px; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>🌎 EcoPlay</h1>
+  <div class="install-area">
+    <button id="installAppButton" type="button">⬇️ Instalar app</button>
+    <p id="installAppMessage" aria-live="polite">Você também pode jogar diretamente no navegador.</p>
+  </div>
+
+  <section id="menu">
+    <p>🌱 Cuide do planeta!</p>
+    <p>❤️ Aprenda hábitos saudáveis!</p>
+    <p>📚 Teste seus conhecimentos!</p>
+    <button id="jogarBtn" type="button">▶️ JOGAR</button>
+  </section>
+
+  <section id="jogoArea">
+    <div id="placar">
+      <span>⭐ Pontos: <strong id="pontos">0</strong></span>
+      <span>🎮 Fase: <strong id="fase">1</strong>/3</span>
+      <span>📦 Restam: <strong id="restantes">10</strong></span>
+    </div>
+    <canvas id="jogo" width="800" height="500" aria-label="Área do jogo EcoPlay"></canvas>
+    <div id="controles" aria-label="Controles direcionais">
+      <div></div><button type="button" data-key="ArrowUp" aria-label="Mover para cima">⬆️</button><div></div>
+      <button type="button" data-key="ArrowLeft" aria-label="Mover para esquerda">⬅️</button>
+      <button id="baixo" type="button" data-key="ArrowDown" aria-label="Mover para baixo">⬇️</button>
+      <button type="button" data-key="ArrowRight" aria-label="Mover para direita">➡️</button>
+    </div>
+    <p id="mensagem" aria-live="polite">Use as setas ou WASD para movimentar 🙂</p>
+
+    <section id="perguntaArea" class="panel">
+      <p id="perguntaTexto"></p>
+      <div id="opcoes" class="opcoes"></div>
+      <p id="feedback" aria-live="polite"></p>
+    </section>
+    <div class="acoes">
+      <button id="reiniciarBtn" type="button">🔄 Reiniciar</button>
+      <button id="menuBtn" type="button">🏠 Menu</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const canvas = document.getElementById("jogo");
+  const ctx = canvas.getContext("2d");
+  const $ = id => document.getElementById(id);
+
+  let pontos = 0, fase = 1, jogoTerminado = false, jogoIniciado = false;
+  let animationId = null, teclas = Object.create(null), objetos = [];
+  let perguntaAtual = 0, perguntasRespondidas = false;
+
+  const jogador = { x: 380, y: 230, tamanho: 32, velocidade: 4.5 };
+  const perguntas = [
+    { texto: "Qual atitude ajuda o meio ambiente?", opcoes: ["A) Jogar lixo no chão", "B) Reciclar", "C) Desperdiçar água"], correta: 1, explicacao: "Reciclar ajuda a reduzir o lixo e reaproveitar materiais." },
+    { texto: "Qual hábito ajuda a manter o corpo hidratado?", opcoes: ["A) Beber água", "B) Nunca beber água", "C) Trocar água por refrigerante sempre"], correta: 0, explicacao: "Beber água regularmente ajuda o corpo a funcionar bem." },
+    { texto: "Qual atitude economiza energia?", opcoes: ["A) Deixar luzes acesas sem necessidade", "B) Abrir a geladeira por muito tempo", "C) Apagar a luz ao sair"], correta: 2, explicacao: "Apagar as luzes quando não são necessárias evita desperdício." }
+  ];
+
+  function atualizarPlacar() {
+    $("pontos").textContent = pontos;
+    $("fase").textContent = fase;
+    $("restantes").textContent = fase === 3 ? Math.max(0, perguntas.length - perguntaAtual) : objetos.length;
+  }
+
+  function posicaoLivre() {
+    let x, y, tentativas = 0, sobreposto;
+    do {
+      x = 45 + Math.random() * (canvas.width - 90);
+      y = 70 + Math.random() * (canvas.height - 110);
+      sobreposto = Math.abs(x - jogador.x) < 65 && Math.abs(y - jogador.y) < 65;
+      tentativas++;
+    } while (sobreposto && tentativas < 30);
+    return { x, y };
+  }
+
+  function criarObjetos() {
+    objetos = [];
+    let tipos = [];
+    if (fase === 1) tipos = Array(10).fill("lixo");
+    if (fase === 2) tipos = [...Array(5).fill("fruta"), ...Array(3).fill("agua"), ...Array(3).fill("ruim")];
+    objetos = tipos.map(tipo => ({ ...posicaoLivre(), tamanho: 30, tipo }));
+    atualizarPlacar();
+  }
+
+  function desenharFundo() {
+    ctx.fillStyle = "#7bd35a";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "40px Arial";
+    ctx.fillText("🌳", 18, 80); ctx.fillText("🌳", 720, 100);
+    ctx.fillText("🌳", 25, 460); ctx.fillText("🌳", 720, 460);
+    ctx.font = "20px Arial"; ctx.fillStyle = "#146b2e";
+    const titulos = { 1: "🌱 Fase 1: Cuide do meio ambiente!", 2: "❤️ Fase 2: Cuide da sua saúde!", 3: "📚 Fase 3: Teste seus conhecimentos!" };
+    ctx.fillText(titulos[fase], 18, 30);
+  }
+
+  function desenharJogador() {
+    ctx.font = "34px Arial";
+    ctx.fillText("🙂", jogador.x, jogador.y + 29);
+  }
+
+  function desenharObjetos() {
+    const emojis = { lixo: "🗑️", fruta: "🍎", agua: "💧", ruim: "🍔" };
+    ctx.font = "30px Arial";
+    objetos.forEach(obj => ctx.fillText(emojis[obj.tipo], obj.x, obj.y + 25));
+  }
+
+  function moverJogador() {
+    if (teclas.ArrowUp || teclas.w || teclas.W) jogador.y -= jogador.velocidade;
+    if (teclas.ArrowDown || teclas.s || teclas.S) jogador.y += jogador.velocidade;
+    if (teclas.ArrowLeft || teclas.a || teclas.A) jogador.x -= jogador.velocidade;
+    if (teclas.ArrowRight || teclas.d || teclas.D) jogador.x += jogador.velocidade;
+    jogador.x = Math.max(0, Math.min(canvas.width - jogador.tamanho, jogador.x));
+    jogador.y = Math.max(38, Math.min(canvas.height - jogador.tamanho, jogador.y));
+  }
+
+  function colisao(a, b) {
+    return a.x < b.x + b.tamanho && a.x + a.tamanho > b.x &&
+           a.y < b.y + b.tamanho && a.y + a.tamanho > b.y;
+  }
+
+  function verificarColisoes() {
+    for (let i = objetos.length - 1; i >= 0; i--) {
+      if (!colisao(jogador, objetos[i])) continue;
+      const tipo = objetos[i].tipo;
+      if (tipo === "lixo" || tipo === "fruta" || tipo === "agua") {
+        pontos += 10;
+        $("mensagem").textContent = tipo === "lixo" ? "♻️ Boa! Você recolheu um resíduo." :
+          tipo === "fruta" ? "🍎 Boa escolha para uma alimentação variada!" : "💧 Hidratação é importante!";
+      } else {
+        pontos = Math.max(0, pontos - 5);
+        $("mensagem").textContent = "🍔 Lembre-se: equilíbrio e variedade são importantes.";
+      }
+      objetos.splice(i, 1);
+    }
+    atualizarPlacar();
+    if (objetos.length === 0) {
+      if (fase === 1) {
+        fase = 2; jogador.x = 380; jogador.y = 230; criarObjetos();
+        $("mensagem").textContent = "🎉 Fase 1 concluída! Agora cuide da sua saúde.";
+      } else if (fase === 2) {
+        fase = 3; jogador.x = 380; jogador.y = 230; objetos = [];
+        atualizarPlacar(); abrirPergunta();
+      }
+    }
+  }
+
+  function desenhar() {
+    desenharFundo();
+    if (fase < 3) desenharObjetos();
+    desenharJogador();
+  }
+
+  function loop() {
+    if (!jogoIniciado || jogoTerminado || fase === 3) {
+      animationId = null;
+      return;
+    }
+    moverJogador();
+    verificarColisoes();
+    desenhar();
+    if (jogoIniciado && !jogoTerminado && fase < 3) animationId = requestAnimationFrame(loop);
+    else animationId = null;
+  }
+
+  function iniciarJogo() {
+    if (jogoIniciado && !jogoTerminado) return;
+    $("menu").style.display = "none";
+    $("jogoArea").style.display = "block";
+    $("perguntaArea").style.display = "none";
+    jogoIniciado = true; jogoTerminado = false;
+    desenhar();
+    if (animationId === null && fase < 3) animationId = requestAnimationFrame(loop);
+  }
+
+  function abrirPergunta() {
+    if (perguntaAtual >= perguntas.length) return finalizarJogo();
+    if (animationId !== null) { cancelAnimationFrame(animationId); animationId = null; }
+    const p = perguntas[perguntaAtual];
+    $("perguntaArea").style.display = "block";
+    $("perguntaTexto").textContent = `Pergunta ${perguntaAtual + 1}/${perguntas.length}: ${p.texto}`;
+    $("feedback").textContent = "";
+    const opcoes = $("opcoes");
+    opcoes.replaceChildren();
+    p.opcoes.forEach((texto, indice) => {
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.textContent = texto;
+      btn.addEventListener("click", () => responder(indice));
+      opcoes.appendChild(btn);
+    });
+    $("mensagem").textContent = "Escolha a resposta correta para continuar.";
+    atualizarPlacar();
+  }
+
+  function responder(indice) {
+    if (perguntasRespondidas) return;
+    const p = perguntas[perguntaAtual];
+    if (indice === p.correta) {
+      pontos += 20;
+      $("feedback").textContent = "✅ Correto! " + p.explicacao;
+      $("feedback").style.color = "#c8ffbf";
+      perguntasRespondidas = true;
+      $("opcoes").querySelectorAll("button").forEach(b => b.disabled = true);
+      atualizarPlacar();
+      setTimeout(() => {
+        perguntaAtual++;
+        perguntasRespondidas = false;
+        if (perguntaAtual >= perguntas.length) finalizarJogo();
+        else abrirPergunta();
+      }, 900);
+    } else {
+      pontos = Math.max(0, pontos - 5);
+      $("feedback").textContent = "❌ Ainda não! Tente outra opção.";
+      $("feedback").style.color = "#ffe082";
+      atualizarPlacar();
+    }
+  }
+
+  function finalizarJogo() {
+    jogoTerminado = true; jogoIniciado = false;
+    if (animationId !== null) cancelAnimationFrame(animationId);
+    animationId = null;
+    $("perguntaArea").style.display = "none";
+    desenharFundo();
+    ctx.fillStyle = "rgba(0,0,0,.82)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textAlign = "center"; ctx.fillStyle = "#fff";
+    ctx.font = "48px Arial"; ctx.fillText("🏆 PARABÉNS!", canvas.width / 2, 170);
+    ctx.font = "26px Arial"; ctx.fillText("Você completou o EcoPlay!", canvas.width / 2, 225);
+    ctx.fillText("🌎 Cuidou do planeta!", canvas.width / 2, 275);
+    ctx.fillText("❤️ Aprendeu sobre saúde!", canvas.width / 2, 320);
+    ctx.fillText("📚 Testou seus conhecimentos!", canvas.width / 2, 365);
+    ctx.font = "30px Arial"; ctx.fillText("⭐ Pontuação: " + pontos, canvas.width / 2, 425);
+    ctx.textAlign = "left";
+    $("mensagem").textContent = "Parabéns! Você concluiu todas as fases. Toque em Reiniciar para jogar novamente.";
+    atualizarPlacar();
+  }
+
+  function reiniciar() {
+    if (animationId !== null) cancelAnimationFrame(animationId);
+    animationId = null; pontos = 0; fase = 1; jogoTerminado = false;
+    jogoIniciado = true; perguntaAtual = 0; perguntasRespondidas = false;
+    teclas = Object.create(null); jogador.x = 380; jogador.y = 230;
+    $("menu").style.display = "none"; $("jogoArea").style.display = "block";
+    $("perguntaArea").style.display = "none";
+    $("mensagem").textContent = "Use as setas ou WASD para movimentar 🙂";
+    criarObjetos(); atualizarPlacar(); desenhar();
+    animationId = requestAnimationFrame(loop);
+  }
+
+  function voltarMenu() {
+    if (animationId !== null) cancelAnimationFrame(animationId);
+    animationId = null; jogoIniciado = false; jogoTerminado = true;
+    teclas = Object.create(null);
+    $("jogoArea").style.display = "none"; $("menu").style.display = "block";
+  }
+
+  document.addEventListener("keydown", event => {
+    const key = event.key;
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(key)) event.preventDefault();
+    teclas[key] = true;
+  });
+  document.addEventListener("keyup", event => { teclas[event.key] = false; });
+  window.addEventListener("blur", () => { teclas = Object.create(null); });
+
+  document.querySelectorAll("#controles button[data-key]").forEach(btn => {
+    const key = btn.dataset.key;
+    const down = event => { event.preventDefault(); teclas[key] = true; };
+    const up = event => { event.preventDefault(); teclas[key] = false; };
+    btn.addEventListener("pointerdown", down);
+    btn.addEventListener("pointerup", up);
+    btn.addEventListener("pointercancel", up);
+    btn.addEventListener("lostpointercapture", up);
+    btn.addEventListener("contextmenu", event => event.preventDefault());
+  });
+
+  $("jogarBtn").addEventListener("click", iniciarJogo);
+  $("reiniciarBtn").addEventListener("click", reiniciar);
+  $("menuBtn").addEventListener("click", voltarMenu);
+  atualizarPlacar();
+
+  // Registro do service worker: funciona em HTTPS ou localhost.
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {
+      $("installAppMessage").textContent = "O jogo funciona no navegador; não foi possível ativar o modo offline.";
+    }));
+  }
+
+  let installPrompt = null;
+  const installButton = $("installAppButton");
+  installButton.addEventListener("click", async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const result = await installPrompt.userChoice;
+      $("installAppMessage").textContent = result.outcome === "accepted" ?
+        "Instalação aceita! Siga as instruções do navegador." : "Instalação cancelada. Você pode continuar jogando no navegador.";
+      installPrompt = null; installButton.style.display = "none";
+    } else {
+      $("installAppMessage").textContent = "Para instalar: abra este site publicado em HTTPS no Chrome e use o menu ⋮ > Instalar app ou Adicionar à tela inicial. Em alguns navegadores, a opção aparece apenas quando os requisitos de instalação são atendidos.";
+    }
+  });
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault(); installPrompt = event;
+    $("installAppMessage").textContent = "Seu dispositivo pode instalar o EcoPlay!";
+  });
+  window.addEventListener("appinstalled", () => {
+    $("installAppMessage").textContent = "EcoPlay instalado com sucesso!";
+    installButton.style.display = "none";
+  });
+})();
+</script>
+<script src="pwa.js"></script>
+</body>
+</html>
