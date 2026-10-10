@@ -1,0 +1,27 @@
+{
+  "id": "/index.html",
+  "name": "Educação Escolar, Saúde e Meio Ambiente",
+  "short_name": "Educa+",
+  "description": "Aplicativo educativo sobre educação escolar, saúde, meio ambiente e diversão.",
+  "lang": "pt-BR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#108616",
+  "icons": [
+    {
+      "src": "./icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
