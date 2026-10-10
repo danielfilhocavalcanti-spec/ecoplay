@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aventura Saúde</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: white;
+    background: #101c35;
+    text-align: center;
+}
+
+header {
+    padding: 22px 10px;
+    background: #087f8c;
+}
+
+h1 { margin: 0 0 8px; }
+
+main {
+    width: 94%;
+    max-width: 760px;
+    margin: 20px auto;
+}
+
+.painel {
+    background: #1d3052;
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 6px 18px #0004;
+}
+
+.personagens {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin: 15px 0;
+}
+
+.heroi {
+    font-size: 75px;
+    animation: flutuar 2s infinite ease-in-out;
+}
+
+.monstro {
+    font-size: 65px;
+}
+
+@keyframes flutuar {
+    50% { transform: translateY(-8px); }
+}
+
+.status {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 18px 0;
+}
+
+.status span {
+    background: #30486d;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.mapa {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.fase {
+    background: #30486d;
+    border: 2px solid #527096;
+    color: white;
+    padding: 13px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.fase.atual {
+    border-color: #ffe066;
+    background: #48658b;
+}
+
+.fase:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+h2 { color: #7ce8e5; }
+
+button {
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 12px;
+    padding: 13px;
+    margin: 5px;
+}
+
+.acao {
+    background: #10b9a8;
+    color: #10263b;
+    font-weight: bold;
+}
+
+.opcao {
+    width: 100%;
+    background: #30486d;
+    color: white;
+    text-align: left;
+    margin: 6px 0;
+    border: 2px solid transparent;
+}
+
+.opcao:hover:not(:disabled) {
+    border-color: #7ce8e5;
+}
+
+.opcao:disabled { cursor: default; }
+
+.certa {
+    background: #176b4a !important;
+    border-color: #64edaa !important;
+}
+
+.errada {
+    background: #873b49 !important;
+    border-color: #ff8794 !important;
+}
+
+#feedback {
+    line-height: 1.6;
+    min-height: 24px;
+}
+
+.barra {
+    background: #40516b;
+    height: 12px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#progresso {
+    width: 0%;
+    height: 100%;
+    background: #ffe066;
+    transition: width .3s;
+}
+
+.escondido { display: none; }
+
+footer {
+    padding: 20px;
+    color: #b7c9df;
+    font-size: 13px;
+}
+</style>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1b5e20">
+</head>
+
+<body>
+
+<header>
+    <h1>🩺 AVENTURA SAÚDE</h1>
+    <p>Guardiões da Vida — Aprenda, explore e salve vidas!</p>
+</header>
+
+<main>
+<section class="painel" id="inicio">
+    <div class="personagens">
+        <div class="heroi">🧑‍⚕️</div>
+        <div class="monstro">🦠</div>
+    </div>
+
+    <h2>Uma missão começou!</h2>
+
+    <p>
+        A cidade de Vitalândia está ameaçada por germes,
+        desinformação e hábitos pouco saudáveis.
+        Você é Alex, um jovem Guardião da Saúde!
+    </p>
+
+    <p>🎯 Complete 5 missões para proteger a cidade.</p>
+    <p>⭐ Ganhe 20 pontos por resposta correta.</p>
+    <p>🧪 Descubra conhecimentos sobre saúde e o corpo humano.</p>
+
+    <button class="acao" onclick="comecar()">Iniciar aventura 🚀</button>
+</section>
+
+<section class="painel escondido" id="jogo">
+    <div class="personagens">
+        <div>
+            <div class="heroi">🧑‍⚕️</div>
+            <strong>Alex, o Guardião</strong>
+        </div>
+        <div>
+            <div class="monstro" id="inimigo">🦠</div>
+            <strong id="nomeInimigo">Rei dos Germes</strong>
+        </div>
+    </div>
+
+    <div class="status">
+        <span>❤️ Energia: <b id="energia">100</b></span>
+        <span>⭐ Pontos: <b id="pontos">0</b></span>
+        <span>🗺️ Fase: <b id="faseNumero">1</b>/5</span>
+    </div>
+
+    <div class="barra">
+        <div id="progresso"></div>
+    </div>
+
+    <div class="mapa" id="mapa"></div>
+
+    <h2 id="tituloFase"></h2>
+    <p id="historia"></p>
+    <h3 id="pergunta"></h3>
+
+    <div id="alternativas"></div>
+    <p id="feedback" aria-live="polite"></p>
+
+    <button id="continuar" class="acao escondido"
+        onclick="avancar()">Continuar aventura ➜</button>
+</section>
+
+<section class="painel escondido" id="final">
+    <div style="font-size:75px" id="trofeu">🏆</div>
+    <h2 id="tituloFinal">Missão concluída!</h2>
+    <p id="resumoFinal"></p>
+    <p id="mensagemFinal"></p>
+    <button class="acao" onclick="comecar()">Jogar novamente 🔄</button>
+</section>
+
+<section class="instalacao" aria-label="Instalar aplicativo"><button id="installAppButton" type="button" hidden>Instalar aplicativo</button><p id="installAppMessage" aria-live="polite"></p></section>
+</main>
+
+<footer>
+    Jogo educativo fictício. Em situações reais de saúde,
+    procure profissionais qualificados.
+</footer>
+
+<script>
+const missoes = [
+{
+    nome: "Floresta dos Germes",
+    inimigo: "Monstro das Bactérias",
+    emoji: "🦠",
+    historia: "Alex precisa atravessar a floresta sem espalhar microrganismos que podem causar doenças.",
+    pergunta: "Qual é uma forma eficaz de reduzir a transmissão de muitos microrganismos?",
+    opcoes: [
+        "Lavar as mãos com água e sabão",
+        "Compartilhar toalhas usadas",
+        "Evitar lavar as mãos",
+        "Usar o mesmo copo de todos"
+    ],
+    correta: 0,
+    explicacao: "Muito bem! Lavar as mãos com água e sabão ajuda a remover microrganismos."
+},
+{
+    nome: "Laboratório do Corpo",
+    inimigo: "Robô Inflamatório",
+    emoji: "🤖",
+    historia: "No laboratório, Alex precisa descobrir qual órgão bombeia o sangue pelo corpo.",
+    pergunta: "Qual órgão funciona como uma bomba para movimentar o sangue?",
+    opcoes: [
+        "Estômago",
+        "Coração",
+        "Pulmão",
+        "Rim"
+    ],
+    correta: 1,
+    explicacao: "Correto! O coração bombeia o sangue pelo sistema circulatório."
+},
+{
+    nome: "Vale da Alimentação",
+    inimigo: "Dragão do Açúcar",
+    emoji: "🐉",
+    historia: "O dragão escondeu os alimentos da cidade. Alex precisa escolher hábitos alimentares saudáveis.",
+    pergunta: "Qual atitude favorece uma alimentação equilibrada?",
+    opcoes: [
+        "Comer somente doces",
+        "Pular todas as refeições",
+        "Variar os alimentos e incluir frutas e verduras",
+        "Beber apenas refrigerante"
+    ],
+    correta: 2,
+    explicacao: "Ótimo! Variar os alimentos ajuda a fornecer diferentes nutrientes."
+},
+{
+    nome: "Montanha da Respiração",
+    inimigo: "Fumaça Sombria",
+    emoji: "🌫️",
+    historia: "Uma fumaça misteriosa cobre a montanha. Alex precisa proteger o sistema respiratório.",
+    pergunta: "Qual órgão é essencial para as trocas gasosas da respiração?",
+    opcoes: [
+        "Fígado",
+        "Bexiga",
+        "Intestino",
+        "Pulmões"
+    ],
+    correta: 3,
+    explicacao: "Isso mesmo! Nos pulmões, o oxigênio passa para o sangue e o dióxido de carbono é eliminado."
+},
+{
+    nome: "Hospital da Esperança",
+    inimigo: "Vilão da Desinformação",
+    emoji: "👾",
+    historia: "O vilão espalha conselhos perigosos. Alex precisa escolher uma atitude segura diante de uma emergência.",
+    pergunta: "Uma pessoa desmaia e não responde. O que fazer?",
+    opcoes: [
+        "Dar água imediatamente",
+        "Verificar se o local é seguro, chamar o SAMU (192) e seguir as orientações do atendente",
+        "Sacudir a pessoa com força",
+        "Deixá-la sozinha"
+    ],
+    correta: 1,
+    explicacao: "Correto! Acione o SAMU pelo 192, verifique a respiração e siga as instruções do atendente. Não ofereça líquidos a uma pessoa inconsciente."
+}
+];
+
+let fase = 0;
+let pontos = 0;
+let energia = 100;
+let respondeu = false;
+let desbloqueadas = 1;
+
+const $ = id => document.getElementById(id);
+
+function comecar() {
+    fase = 0;
+    pontos = 0;
+    energia = 100;
+    respondeu = false;
+    desbloqueadas = 1;
+
+    $("inicio").classList.add("escondido");
+    $("final").classList.add("escondido");
+    $("jogo").classList.remove("escondido");
+
+    desenharMapa();
+    mostrarMissao();
+}
+
+function desenharMapa() {
+    const mapa = $("mapa");
+    mapa.replaceChildren();
+
+    missoes.forEach((m, i) => {
+        const botao = document.createElement("button");
+        botao.className = "fase" + (i === fase ? " atual" : "");
+        botao.textContent = (i < desbloqueadas ? "🔓 " : "🔒 ") + (i + 1);
+        botao.disabled = i >= desbloqueadas;
+        botao.title = m.nome;
+
+        botao.addEventListener("click", () => {
+            if (i < desbloqueadas) {
+                fase = i;
+                mostrarMissao();
+            }
+        });
+
+        mapa.appendChild(botao);
+    });
+}
+
+function mostrarMissao() {
+    respondeu = false;
+    const m = missoes[fase];
+
+    $("faseNumero").textContent = fase + 1;
+    $("pontos").textContent = pontos;
+    $("energia").textContent = energia;
+    $("progresso").style.width = (fase / missoes.length * 100) + "%";
+    $("inimigo").textContent = m.emoji;
+    $("nomeInimigo").textContent = m.inimigo;
+    $("tituloFase").textContent = "🗺️ " + m.nome;
+    $("historia").textContent = m.historia;
+    $("pergunta").textContent = m.pergunta;
+    $("feedback").textContent = "";
+    $("continuar").classList.add("escondido");
+
+    const area = $("alternativas");
+    area.replaceChildren();
+
+    m.opcoes.forEach((texto, i) => {
+        const botao = document.createElement("button");
+        botao.className = "opcao";
+        botao.textContent = String.fromCharCode(65 + i) + ") " + texto;
+        botao.addEventListener("click", () => responder(i));
+        area.appendChild(botao);
+    });
+
+    desenharMapa();
+}
+
+function responder(escolha) {
+    if (respondeu) return;
+    respondeu = true;
+
+    const m = missoes[fase];
+    const botoes = $("alternativas").querySelectorAll("button");
+
+    botoes.forEach((b, i) => {
+        b.disabled = true;
+        if (i === m.correta) b.classList.add("certa");
+    });
+
+    if (escolha === m.correta) {
+        pontos += 20;
+        energia = Math.min(100, energia + 5);
+        $("feedback").textContent = "✅ Acertou! " + m.explicacao;
+    } else {
+        energia = Math.max(0, energia - 10);
+        botoes[escolha].classList.add("errada");
+        $("feedback").textContent = "❌ Resposta incorreta. " + m.explicacao;
+    }
+
+    $("pontos").textContent = pontos;
+    $("energia").textContent = energia;
+    $("progresso").style.width = ((fase + 1) / missoes.length * 100) + "%";
+
+    $("continuar").textContent =
+        fase === missoes.length - 1
+        ? "Concluir aventura 🏆"
+        : "Avançar para a próxima fase ➜";
+
+    $("continuar").classList.remove("escondido");
+}
+
+function avancar() {
+    if (fase < missoes.length - 1) {
+        fase++;
+        desbloqueadas = Math.max(desbloqueadas, fase + 1);
+        mostrarMissao();
+    } else {
+        terminar();
+    }
+}
+
+function terminar() {
+    $("jogo").classList.add("escondido");
+    $("final").classList.remove("escondido");
+    $("progresso").style.width = "100%";
+
+    $("resumoFinal").textContent =
+        "Você conquistou " + pontos + " de 100 pontos e terminou as 5 missões!";
+
+    if (pontos === 100) {
+        $("trofeu").textContent = "🥇";
+        $("tituloFinal").textContent = "Lenda da Saúde!";
+        $("mensagemFinal").textContent =
+            "Você venceu todos os desafios! Conhecimento desbloqueado!";
+    } else if (pontos >= 60) {
+        $("trofeu").textContent = "🏆";
+        $("tituloFinal").textContent = "Guardião da Saúde!";
+        $("mensagemFinal").textContent =
+            "Excelente aventura! Continue aprendendo para proteger vidas.";
+    } else {
+        $("trofeu").textContent = "🩺";
+        $("tituloFinal").textContent = "Treinamento concluído!";
+        $("mensagemFinal").textContent =
+            "Todo herói aprende com os desafios. Jogue novamente para praticar!";
+    }
+}
+</script>
+    <script src="pwa.js" defer></script>
+</body>
+</html>

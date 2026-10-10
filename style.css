@@ -1,0 +1,52 @@
+:root {
+  --verde: #1b5e20;
+  --verde-claro: #2e7d32;
+  --verde-suave: #e8f5e9;
+  --texto: #243027;
+  --fundo: #f6faf6;
+  --branco: #fff;
+  --borda: #d7e7d8;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  line-height: 1.6; color: var(--texto); background: var(--fundo);
+}
+header {
+  background: linear-gradient(135deg, #1b5e20, #388e3c); color: white;
+  padding: 1.2rem max(1rem, calc((100% - 1100px)/2));
+}
+header h1 { margin: 0 0 .3rem; line-height: 1.2; }
+header p { margin: .25rem 0; }
+nav { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .9rem; }
+nav a, .botao, button {
+  display: inline-block; border: 0; border-radius: 999px; padding: .65rem 1rem;
+  color: white; background: var(--verde-claro); text-decoration: none;
+  font: inherit; font-weight: 650; cursor: pointer;
+}
+header nav a { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); }
+nav a:hover, .botao:hover, button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+main { width: min(1100px, calc(100% - 2rem)); margin: 1.5rem auto 3rem; }
+section { margin: 1.5rem 0; }
+section > h2, .titulo h2 { color: var(--verde); line-height: 1.25; }
+.titulo { margin: 1rem 0; }
+.cards, .cartoes, .jogos, .conteudo-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 1rem; margin: 1rem 0;
+}
+.card, .cartao, .jogo, .conteudo-card, article {
+  background: var(--branco); border: 1px solid var(--borda); border-radius: 16px;
+  padding: 1rem; box-shadow: 0 4px 16px rgba(24, 75, 31, .07);
+}
+.card h3, .cartao h3, .jogo h3 { margin-top: 0; color: var(--verde); }
+img { max-width: 100%; height: auto; }
+footer { text-align: center; padding: 1.5rem 1rem; color: #526256; background: #e8f5e9; }
+input, select, textarea { max-width: 100%; font: inherit; padding: .55rem .7rem; border: 1px solid #a8c9aa; border-radius: 8px; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #ffca28; outline-offset: 3px; }
+#installAppMessage { margin: .5rem 0; font-size: .95rem; }
+@media (max-width: 600px) {
+  header { padding: 1rem; }
+  main { width: min(100% - 1rem, 1100px); }
+  nav a, .botao, button { padding: .55rem .8rem; }
+}
